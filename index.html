@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0D0D0F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CompGen" />
+  <title>CompGen</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & tokens ──────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D0D0F;
+      --surface:   #16161A;
+      --card:      #1E1E24;
+      --border:    rgba(255,255,255,.07);
+      --accent:    #6C63FF;
+      --accent-lo: rgba(108,99,255,.12);
+      --accent-hi: #9D97FF;
+      --green:     #3DD68C;
+      --amber:     #F59E0B;
+      --red:       #FF5A5A;
+      --text:      #F0F0F5;
+      --muted:     #7A7A8C;
+      --radius:    16px;
+      --radius-sm: 10px;
+      --font:      'Inter', system-ui, sans-serif;
+      --mono:      'JetBrains Mono', monospace;
+      --nav-h:     64px;
+      --safe-bot:  env(safe-area-inset-bottom, 0px);
+      --transition: .2s cubic-bezier(.4,0,.2,1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ─── App shell ───────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      position: relative;
+    }
+
+    /* ─── Header / Status bar ─────────────────────────── */
+    #topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px 10px;
+      padding-top: calc(14px + env(safe-area-inset-top, 0px));
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    #topbar .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -.3px;
+    }
+
+    #topbar .logo-icon {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .pill-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: var(--accent-lo);
+      color: var(--accent-hi);
+      font-family: var(--mono);
+    }
+
+    /* ─── Scroll body ─────────────────────────────────── */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    /* ─── Screens ─────────────────────────────────────── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      min-height: 100%;
+      padding: 16px 16px calc(var(--nav-h) + var(--safe-bot) + 8px);
+    }
+    .screen.active { display: flex; }
+
+    /* ─── Gerar screen ────────────────────────────────── */
+    .prompt-area {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 12px;
+      transition: border-color var(--transition);
+    }
+    .prompt-area:focus-within {
+      border-color: var(--accent);
+    }
+
+    .prompt-area textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.55;
+      padding: 12px 14px 8px;
+      min-height: 100px;
+    }
+    .prompt-area textarea::placeholder { color: var(--muted); }
+
+    .prompt-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px 8px;
+    }
+
+    .char-count {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    /* Tag chips */
+    .tags-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tag-chip {
+      padding: 6px 11px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--mono);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tag-chip.selected {
+      background: var(--accent-lo);
+      border-color: var(--accent);
+      color: var(--accent-hi);
+    }
+    .tag-chip:active { transform: scale(.95); }
+
+    /* Section title */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* Generate button */
+    .btn-generate {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-generate:active { transform: scale(.98); background: #5950d6; }
+    .btn-generate:disabled { opacity: .5; pointer-events: none; }
+    .btn-generate .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    .btn-generate.loading .btn-text { display: none; }
+    .btn-generate.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Preview screen ──────────────────────────────── */
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .device-btn {
+      padding: 7px 14px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .device-btn.active {
+      background: var(--accent-lo);
+      border-color: var(--accent);
+      color: var(--accent-hi);
+    }
+
+    .preview-frame-wrap {
+      flex: 1;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+      min-height: 400px;
+      transition: max-width var(--transition);
+      margin: 0 auto;
+      width: 100%;
+    }
+    .preview-frame-wrap.mobile  { max-width: 390px; }
+    .preview-frame-wrap.tablet  { max-width: 768px; }
+    .preview-frame-wrap.desktop { max-width: 100%; }
+
+    #preview-iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 500px;
+      border: none;
+      display: block;
+    }
+
+    .empty-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 12px;
+      color: var(--muted);
+      text-align: center;
+      flex: 1;
+    }
+    .empty-preview .icon { font-size: 48px; opacity: .4; }
+    .empty-preview p { font-size: 14px; line-height: 1.5; max-width: 220px; }
+
+    /* ─── Code screen ─────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--mono);
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .code-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #C5C5D8;
+      white-space: pre;
+      flex: 1;
+      position: relative;
+      min-height: 300px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: var(--accent-lo);
+      border: 1px solid var(--accent);
+      color: var(--accent-hi);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .copy-btn:active { transform: scale(.95); }
+    .copy-btn.copied { background: rgba(61,214,140,.12); border-color: var(--green); color: var(--green); }
+
+    /* Syntax colors */
+    .tok-tag    { color: #FF79C6; }
+    .tok-attr   { color: #8BE9FD; }
+    .tok-val    { color: #F1FA8C; }
+    .tok-text   { color: #C5C5D8; }
+    .tok-prop   { color: #BD93F9; }
+    .tok-unit   { color: #50FA7B; }
+    .tok-comment{ color: #6272A4; font-style: italic; }
+    .tok-key    { color: #8BE9FD; }
+    .tok-fn     { color: #FFB86C; }
+
+    /* ─── Histórico screen ────────────────────────────── */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .hist-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .hist-card:active { transform: scale(.98); }
+
+    .hist-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent-lo);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .hist-info { flex: 1; min-width: 0; }
+    .hist-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    .hist-meta {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hist-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255,255,255,.05);
+    }
+
+    .hist-del {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      -webkit-tap-highlight-color: transparent;
+      transition: color var(--transition);
+    }
+    .hist-del:active { color: var(--red); }
+
+    .empty-history {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 60px 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty-history .icon { font-size: 44px; opacity: .3; }
+    .empty-history p { font-size: 14px; line-height: 1.5; max-width: 200px; }
+
+    /* ─── Toast ───────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bot) + 16px);
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      transition: all .3s cubic-bezier(.4,0,.2,1);
+      z-index: 1000;
+      pointer-events: none;
+      max-width: calc(100vw - 40px);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.success { border-color: var(--green); color: var(--green); }
+    #toast.error   { border-color: var(--red);   color: var(--red);   }
+
+    /* ─── Bottom Nav ──────────────────────────────────── */
+    #nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-h) + var(--safe-bot));
+      padding-bottom: var(--safe-bot);
+      background: rgba(13,13,15,.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-around;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: 10px;
+      gap: 4px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      transition: all var(--transition);
+    }
+
+    .nav-item .nav-icon {
+      font-size: 22px;
+      transition: transform var(--transition);
+      position: relative;
+    }
+
+    .nav-item .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color var(--transition);
+      letter-spacing: .02em;
+    }
+
+    .nav-item.active .nav-label { color: var(--accent-hi); }
+    .nav-item.active .nav-icon  { transform: scale(1.1); }
+
+    .nav-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%) scale(0);
+      transition: transform var(--transition);
+    }
+    .nav-item.active .nav-dot { transform: translateX(-50%) scale(1); }
+
+    /* ─── Loading overlay ─────────────────────────────── */
+    #generating-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,13,15,.92);
+      z-index: 500;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      backdrop-filter: blur(8px);
+    }
+    #generating-overlay.visible { display: flex; }
+
+    .gen-spinner {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin .8s linear infinite;
+    }
+
+    .gen-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .gen-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .gen-step {
+      font-size: 13px;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity .4s;
+      font-family: var(--mono);
+    }
+    .gen-step.visible { opacity: 1; color: var(--accent-hi); }
+
+    /* ─── Scrollbar ───────────────────────────────────── */
+    ::-webkit-scrollbar { width: 0; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Topbar -->
+  <header id="topbar" role="banner">
+    <div class="logo">
+      <div class="logo-icon">⟨/⟩</div>
+      CompGen
+    </div>
+    <span class="pill-badge" id="model-badge">Sonnet 4</span>
+  </header>
+
+  <!-- Screens -->
+  <main id="content" role="main">
+
+    <!-- ── Gerar ── -->
+    <section id="screen-gerar" class="screen active" aria-label="Gerar componente">
+      <p class="section-label">Tipo de componente</p>
+      <div class="tags-row" id="tags-row">
+        <button class="tag-chip selected" data-tag="article">article</button>
+        <button class="tag-chip" data-tag="section">section</button>
+        <button class="tag-chip" data-tag="nav">nav</button>
+        <button class="tag-chip" data-tag="aside">aside</button>
+        <button class="tag-chip" data-tag="header">header</button>
+        <button class="tag-chip" data-tag="footer">footer</button>
+        <button class="tag-chip" data-tag="form">form</button>
+        <button class="tag-chip" data-tag="main">main</button>
+      </div>
+
+      <p class="section-label">Descreva o componente</p>
+      <div class="prompt-area">
+        <textarea id="prompt" placeholder="Ex: Card de produto com imagem, nome, preço e botão de comprar. Visual escuro com borda neon." maxlength="600"></textarea>
+        <div class="prompt-footer">
+          <span class="char-count" id="char-count">0 / 600</span>
+          <span class="pill-badge" id="selected-tag-badge">article</span>
+        </div>
+      </div>
+
+      <button class="btn-generate" id="btn-generate">
+        <span class="btn-text">✦ Gerar Componente</span>
+        <span class="spinner"></span>
+      </button>
+    </section>
+
+    <!-- ── Preview ── -->
+    <section id="screen-preview" class="screen" aria-label="Preview do componente">
+      <div class="preview-toolbar">
+        <button class="device-btn active" data-size="mobile">📱 Mobile</button>
+        <button class="device-btn" data-size="tablet">📟 Tablet</button>
+        <button class="device-btn" data-size="desktop">🖥 Desktop</button>
+      </div>
+
+      <div id="empty-preview-msg" class="empty-preview">
+        <div class="icon">🎨</div>
+        <p>Gere um componente primeiro para ver o preview aqui</p>
+      </div>
+
+      <div class="preview-frame-wrap mobile" id="preview-wrap" style="display:none">
+        <iframe id="preview-iframe" title="Preview do componente" sandbox="allow-scripts"></iframe>
+      </div>
+    </section>
+
+    <!-- ── Código ── -->
+    <section id="screen-codigo" class="screen" aria-label="Código gerado">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="html">HTML</button>
+        <button class="tab-btn" data-tab="css">CSS</button>
+        <button class="tab-btn" data-tab="js">JS</button>
+      </div>
+
+      <div style="position:relative; flex:1">
+        <pre class="code-block" id="code-display">
+<span style="color:var(--muted); font-style:italic">// Gere um componente para ver o código aqui</span>
+        </pre>
+        <button class="copy-btn" id="copy-btn">Copiar</button>
+      </div>
+    </section>
+
+    <!-- ── Histórico ── -->
+    <section id="screen-historico" class="screen" aria-label="Histórico de componentes">
+      <p class="section-label" style="margin-bottom:12px">Gerados recentemente</p>
+      <div class="history-list" id="history-list">
+        <div class="empty-history">
+          <div class="icon">📋</div>
+          <p>Seus componentes gerados aparecem aqui</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav id="nav" aria-label="Navegação principal">
+    <div class="nav-item active" data-screen="gerar">
+      <span class="nav-icon">✦</span>
+      <span class="nav-label">Gerar</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="preview">
+      <span class="nav-icon">👁</span>
+      <span class="nav-label">Preview</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="codigo">
+      <span class="nav-icon">⟨/⟩</span>
+      <span class="nav-label">Código</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="historico">
+      <span class="nav-icon">🕐</span>
+      <span class="nav-label">Histórico</span>
+      <span class="nav-dot"></span>
+    </div>
+  </nav>
+
+</div>
+
+<!-- Generating Overlay -->
+<div id="generating-overlay" aria-live="polite" aria-label="Gerando componente">
+  <div class="gen-spinner"></div>
+  <div class="gen-steps">
+    <p class="gen-step" id="step-1">Analisando descrição…</p>
+    <p class="gen-step" id="step-2">Escolhendo tags semânticas…</p>
+    <p class="gen-step" id="step-3">Escrevendo HTML + CSS…</p>
+    <p class="gen-step" id="step-4">Adicionando interatividade…</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" role="alert"></div>
+
+<script>
+/* ─── State ──────────────────────────────────────── */
+const state = {
+  activeScreen: 'gerar',
+  activeTab: 'html',
+  selectedTag: 'article',
+  generated: { html: '', css: '', js: '' },
+  history: JSON.parse(localStorage.getItem('compgen-history') || '[]'),
+  previewSize: 'mobile',
+};
+
+/* ─── DOM refs ───────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+/* ─── Nav ────────────────────────────────────────── */
+$$('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const screen = item.dataset.screen;
+    navigate(screen);
+  });
+});
+
+function navigate(screen) {
+  state.activeScreen = screen;
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.screen === screen));
+  $$('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${screen}`));
+  if (screen === 'historico') renderHistory();
+}
+
+/* ─── Tag chips ──────────────────────────────────── */
+$$('.tag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    $$('.tag-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    state.selectedTag = chip.dataset.tag;
+    $('selected-tag-badge').textContent = chip.dataset.tag;
+  });
+});
+
+/* ─── Char count ─────────────────────────────────── */
+$('prompt').addEventListener('input', () => {
+  const len = $('prompt').value.length;
+  $('char-count').textContent = `${len} / 600`;
+  $('char-count').style.color = len > 500 ? 'var(--amber)' : 'var(--muted)';
+});
+
+/* ─── Preview device size ────────────────────────── */
+$$('.device-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.device-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.previewSize = btn.dataset.size;
+    const wrap = $('preview-wrap');
+    wrap.className = `preview-frame-wrap ${btn.dataset.size}`;
+  });
+});
+
+/* ─── Code tabs ──────────────────────────────────── */
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeTab = btn.dataset.tab;
+    renderCode();
+  });
+});
+
+/* ─── Copy ───────────────────────────────────────── */
+$('copy-btn').addEventListener('click', async () => {
+  const code = state.generated[state.activeTab] || '';
+  if (!code) return;
+  await navigator.clipboard.writeText(code).catch(() => {});
+  const btn = $('copy-btn');
+  btn.textContent = '✓ Copiado';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1800);
+});
+
+/* ─── Toast ──────────────────────────────────────── */
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+/* ─── Generating overlay steps ───────────────────── */
+function runSteps() {
+  const steps = ['step-1','step-2','step-3','step-4'];
+  steps.forEach((id, i) => {
+    setTimeout(() => $$(`.gen-step`)[i]?.classList.add('visible'), i * 800);
+  });
+}
+
+function resetSteps() {
+  $$('.gen-step').forEach(s => s.classList.remove('visible'));
+}
+
+/* ─── Generate ───────────────────────────────────── */
+$('btn-generate').addEventListener('click', generate);
+
+async function generate() {
+  const prompt = $('prompt').value.trim();
+  const tag = state.selectedTag;
+
+  if (!prompt) { toast('⚠️ Descreva o componente', 'error'); return; }
+
+  // Show overlay
+  const overlay = $('generating-overlay');
+  overlay.classList.add('visible');
+  resetSteps();
+  runSteps();
+
+  // Prompt e systemPrompt ficam no backend (netlify/functions/gerar.js)
+  // O frontend envia apenas { prompt, tag } para /api/gerar
+
+  try {
+    const res = await fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, tag })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API retornou status ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // Verificar stop_reason — se for max_tokens a resposta foi cortada
+    if (data.stop_reason === 'max_tokens') {
+      throw new Error('Resposta muito longa. Simplifique a descrição do componente.');
+    }
+
+    const raw = data.content?.[0]?.text || '';
+
+    // Parser de delimitadores XML — imune a quebras de linha e aspas no código
+    function extractBlock(text, tag) {
+      const open  = new RegExp(`<${tag}>\\s*`, 's');
+      const close = new RegExp(`\\s*<\\/${tag}>`, 's');
+      const full  = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 's');
+      const m = text.match(full);
+      return m ? m[1].trim() : '';
+    }
+
+    const htmlCode  = extractBlock(raw, 'HTML');
+    const cssCode   = extractBlock(raw, 'CSS');
+    const jsCode    = extractBlock(raw, 'JS');
+    const titleText = extractBlock(raw, 'TITLE') || 'Componente';
+    const emojiText = extractBlock(raw, 'EMOJI') || '⟨⟩';
+
+    if (!htmlCode) {
+      // Último fallback: talvez o modelo ainda tenha retornado JSON, tenta parsear
+      try {
+        const clean = raw.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean);
+        state.generated.html = parsed.html || '';
+        state.generated.css  = parsed.css  || '';
+        state.generated.js   = parsed.js   || '';
+        var _title = parsed.title || 'Componente';
+        var _emoji = parsed.emoji || '⟨⟩';
+      } catch {
+        throw new Error('Formato de resposta inesperado. Tente novamente.');
+      }
+    } else {
+      state.generated.html = htmlCode;
+      state.generated.css  = cssCode;
+      state.generated.js   = jsCode;
+      var _title = titleText;
+      var _emoji = emojiText;
+    }
+
+    // Save to history
+    const item = {
+      id: Date.now(),
+      title: _title,
+      emoji: _emoji,
+      tag,
+      prompt: prompt.slice(0, 80),
+      html: state.generated.html,
+      css:  state.generated.css,
+      js:   state.generated.js,
+      ts:   new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+    };
+    state.history.unshift(item);
+    if (state.history.length > 20) state.history.pop();
+    localStorage.setItem('compgen-history', JSON.stringify(state.history));
+
+    overlay.classList.remove('visible');
+    updatePreview();
+    renderCode();
+    toast(`✦ Componente gerado!`, 'success');
+    navigate('preview');
+
+  } catch (err) {
+    overlay.classList.remove('visible');
+    console.error(err);
+    toast(`Erro: ${err.message}`, 'error');
+  }
+}
+
+/* ─── Preview ────────────────────────────────────── */
+function updatePreview() {
+  const { html, css, js } = state.generated;
+  if (!html) return;
+
+  const doc = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;padding:20px;background:#fafafa;min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+  ${css}
+</style>
+</head>
+<body>
+${html}
+<script>${js}<\/script>
+</body>
+</html>`;
+
+  const frame = $('preview-iframe');
+  const wrap  = $('preview-wrap');
+  $('empty-preview-msg').style.display = 'none';
+  wrap.style.display = 'block';
+  frame.srcdoc = doc;
+}
+
+/* ─── Code render ────────────────────────────────── */
+function renderCode() {
+  const code = state.generated[state.activeTab] || '';
+  if (!code) return;
+  $('code-display').innerHTML = highlight(code, state.activeTab);
+}
+
+function highlight(code, lang) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (lang === 'html') {
+    return esc(code)
+      .replace(/(&lt;\/?)([\w-]+)/g, '<span class="tok-tag">$1$2</span>')
+      .replace(/([\w-]+=)/g, '<span class="tok-attr">$1</span>')
+      .replace(/(&quot;[^&]*&quot;)/g, '<span class="tok-val">$1</span>');
+  }
+  if (lang === 'css') {
+    return esc(code)
+      .replace(/(--[\w-]+)/g, '<span class="tok-key">$1</span>')
+      .replace(/([\w-]+)(\s*:)/g, '<span class="tok-prop">$1</span>$2')
+      .replace(/(\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%))/g, '<span class="tok-unit">$1</span>')
+      .replace(/(\/\*[^*]*\*\/)/g, '<span class="tok-comment">$1</span>');
+  }
+  if (lang === 'js') {
+    return esc(code)
+      .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|new|this|async|await)\b/g, '<span class="tok-key">$1</span>')
+      .replace(/\b([\w$]+)(\s*\()/g, '<span class="tok-fn">$1</span>$2')
+      .replace(/(\/\/[^\n]*)/g, '<span class="tok-comment">$1</span>');
+  }
+  return esc(code);
+}
+
+/* ─── History ────────────────────────────────────── */
+function renderHistory() {
+  const list = $('history-list');
+  if (!state.history.length) {
+    list.innerHTML = `<div class="empty-history"><div class="icon">📋</div><p>Seus componentes gerados aparecem aqui</p></div>`;
+    return;
+  }
+  list.innerHTML = state.history.map(item => `
+    <article class="hist-card" data-id="${item.id}" role="button" tabindex="0">
+      <div class="hist-icon">${item.emoji}</div>
+      <div class="hist-info">
+        <p class="hist-title">${item.title}</p>
+        <div class="hist-meta">
+          <span class="hist-tag">&lt;${item.tag}&gt;</span>
+          <span>${item.ts}</span>
+        </div>
+      </div>
+      <button class="hist-del" data-id="${item.id}" aria-label="Deletar">🗑</button>
+    </article>
+  `).join('');
+
+  list.querySelectorAll('.hist-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('.hist-del')) return;
+      const item = state.history.find(h => h.id == card.dataset.id);
+      if (!item) return;
+      state.generated = { html: item.html, css: item.css, js: item.js };
+      updatePreview();
+      renderCode();
+      navigate('preview');
+      toast('✦ Componente carregado', 'success');
+    });
+  });
+
+  list.querySelectorAll('.hist-del').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      state.history = state.history.filter(h => h.id != btn.dataset.id);
+      localStorage.setItem('compgen-history', JSON.stringify(state.history));
+      renderHistory();
+      toast('Removido do histórico');
+    });
+  });
+}
+
+/* ─── PWA ────────────────────────────────────────── */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
