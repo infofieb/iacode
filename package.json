@@ -1,5 +1,20 @@
 {
   "dependencies": {
-    "puppeteer": "^25.1.0"
-  }
+    "@supabase/supabase-js": "^2.108.1",
+    "lucide-react": "^1.18.0",
+    "puppeteer": "^25.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-syntax-highlighter": "^16.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.16"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "type": "module"
 }
