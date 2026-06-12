@@ -6,13 +6,30 @@
  *   Key: ANTHROPIC_API_KEY  |  Value: sk-ant-...
  */
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 export default async (request, context) => {
-  // Só aceita POST
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Método não permitido' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' }
     });
+  }
+
+  // Verificação de Autenticação Supabase
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Acesso negado. Por favor, faça login.' }), { status: 401 });
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  const supabaseUrl = 'https://agawgutsvfggpukphiuf.supabase.co';
+  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYXdndXRzdmZnZ3B1a3BoaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODkxODcsImV4cCI6MjA5Njg2NTE4N30.j01v2ntx0D0aM6JdSi98l1RMITpGa0phzpYrGQA7MMU';
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !user) {
+    return new Response(JSON.stringify({ error: 'Sessão inválida ou expirada. Faça login novamente.' }), { status: 401 });
   }
 
   // Chave lida do ambiente do servidor — invisível para o cliente

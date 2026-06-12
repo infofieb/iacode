@@ -11,6 +11,7 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ─── Reset & tokens ──────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -604,7 +605,10 @@
       <div class="logo-icon">⟨/⟩</div>
       CompGen
     </div>
-    <span class="pill-badge" id="model-badge">Sonnet 4</span>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="pill-badge" id="model-badge">Sonnet 4</span>
+      <button id="auth-btn" class="pill-badge" style="cursor: pointer; background: var(--card); border: 1px solid var(--border); color: var(--text);">Entrar</button>
+    </div>
   </header>
 
   <!-- Screens -->
@@ -726,14 +730,30 @@
 <!-- Toast -->
 <div id="toast" role="alert"></div>
 
+<!-- Auth Modal -->
+<div id="auth-overlay" style="display:none; position:fixed; inset:0; background:rgba(13,13,15,.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--card); padding:24px; border-radius:var(--radius); border:1px solid var(--border); width:100%; max-width:320px; display:flex; flex-direction:column; gap:16px;">
+    <h3 style="font-weight:600; font-size:18px; color:var(--text);">Acesso ao Gerador</h3>
+    <p style="font-size:13px; color:var(--muted); line-height:1.4;">Para gerar ou salvar componentes na nuvem, faça login informando seu e-mail.</p>
+    <input type="email" id="auth-email" placeholder="seu@email.com" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:8px; outline:none;" />
+    <input type="password" id="auth-password" placeholder="Senha" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:8px; outline:none;" />
+    <button id="btn-login-submit" class="btn-generate" style="padding:12px;">Entrar / Cadastrar</button>
+    <button id="btn-close-auth" style="background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
 <script>
+const supabaseUrl = 'https://agawgutsvfggpukphiuf.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYXdndXRzdmZnZ3B1a3BoaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODkxODcsImV4cCI6MjA5Njg2NTE4N30.j01v2ntx0D0aM6JdSi98l1RMITpGa0phzpYrGQA7MMU';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+let session = null;
 /* ─── State ──────────────────────────────────────── */
 const state = {
   activeScreen: 'gerar',
   activeTab: 'html',
   selectedTag: 'article',
   generated: { html: '', css: '', js: '' },
-  history: JSON.parse(localStorage.getItem('compgen-history') || '[]'),
+  history: [], // Será carregado do Supabase
   previewSize: 'mobile',
 };
 
@@ -835,19 +855,24 @@ async function generate() {
 
   if (!prompt) { toast('⚠️ Descreva o componente', 'error'); return; }
 
+  if (!session) {
+    $('auth-overlay').style.display = 'flex';
+    return;
+  }
+
   // Show overlay
   const overlay = $('generating-overlay');
   overlay.classList.add('visible');
   resetSteps();
   runSteps();
 
-  // Prompt e systemPrompt ficam no backend (netlify/functions/gerar.js)
-  // O frontend envia apenas { prompt, tag } para /api/gerar
-
   try {
     const res = await fetch('/api/gerar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
       body: JSON.stringify({ prompt, tag })
     });
 
@@ -932,19 +957,24 @@ async function generate() {
 
     // Save to history
     const item = {
-      id: Date.now(),
       title: _title,
       emoji: _emoji,
       tag,
       prompt: prompt.slice(0, 80),
       html: state.generated.html,
       css:  state.generated.css,
-      js:   state.generated.js,
-      ts:   new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+      js:   state.generated.js
     };
-    state.history.unshift(item);
-    if (state.history.length > 20) state.history.pop();
-    localStorage.setItem('compgen-history', JSON.stringify(state.history));
+    
+    // Salvar no banco (Supabase) em background
+    supabase.from('components_history').insert([item]).select().then(({data, error}) => {
+      if(error) console.error(error);
+      if(data) {
+        data[0].ts = new Date(data[0].created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        state.history.unshift(data[0]);
+        renderHistory();
+      }
+    });
 
     updatePreview();
     renderCode();
@@ -1053,15 +1083,83 @@ function renderHistory() {
   });
 
   list.querySelectorAll('.hist-del').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', async e => {
       e.stopPropagation();
-      state.history = state.history.filter(h => h.id != btn.dataset.id);
-      localStorage.setItem('compgen-history', JSON.stringify(state.history));
+      const id = btn.dataset.id;
+      state.history = state.history.filter(h => h.id != id);
       renderHistory();
+      if (session && id) {
+        await supabase.from('components_history').delete().eq('id', id);
+      }
       toast('Removido do histórico');
     });
   });
 }
+
+/* ─── Auth Flow & DB Load ────────────────────────── */
+supabase.auth.onAuthStateChange((event, _session) => {
+  session = _session;
+  updateAuthUI();
+});
+
+function updateAuthUI() {
+  const btn = $('auth-btn');
+  if (session) {
+    btn.textContent = 'Sair';
+    loadHistoryFromDB();
+  } else {
+    btn.textContent = 'Entrar';
+    state.history = [];
+    renderHistory();
+  }
+}
+
+async function loadHistoryFromDB() {
+  const { data, error } = await supabase
+    .from('components_history')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (data) {
+    state.history = data.map(d => ({ ...d, ts: new Date(d.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) }));
+    renderHistory();
+  }
+}
+
+$('auth-btn').addEventListener('click', async () => {
+  if (session) {
+    await supabase.auth.signOut();
+  } else {
+    $('auth-overlay').style.display = 'flex';
+  }
+});
+
+$('btn-close-auth').addEventListener('click', () => {
+  $('auth-overlay').style.display = 'none';
+});
+
+$('btn-login-submit').addEventListener('click', async () => {
+  const email = $('auth-email').value.trim();
+  const password = $('auth-password').value;
+  if (!email || !password) return toast('Preencha email e senha', 'error');
+  
+  $('btn-login-submit').textContent = 'Aguarde...';
+  let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  if (error && error.message.includes('Invalid login credentials')) {
+    const res = await supabase.auth.signUp({ email, password });
+    error = res.error;
+    data = res.data;
+  }
+  
+  $('btn-login-submit').textContent = 'Entrar / Cadastrar';
+  if (error) {
+    toast('Erro: ' + error.message, 'error');
+  } else {
+    $('auth-overlay').style.display = 'none';
+    toast('Logado com sucesso!', 'success');
+  }
+});
 
 /* ─── PWA ────────────────────────────────────────── */
 if ('serviceWorker' in navigator) {
