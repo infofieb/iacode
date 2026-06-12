@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Send, Image as ImageIcon } from 'lucide-react';
 
-export default function GeneratorPanel({ session, onShowAuth, isGenerating, setIsGenerating, setGenerated, setActiveTab, onSuccess }) {
+export default function GeneratorPanel({ session, onShowAuth, isGenerating, setIsGenerating, setGenerated, setActiveScreen, onSuccess, showToast }) {
   const [prompt, setPrompt] = useState('');
-  const [tag, setTag] = useState('section');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [tag, setTag] = useState('article');
+
+  const tags = ['article', 'section', 'nav', 'aside', 'header', 'footer', 'form', 'main'];
 
   const handleGenerate = async () => {
-    if (!prompt) {
-      setErrorMsg('Descreva o componente!');
+    if (!prompt.trim()) {
+      showToast('⚠️ Descreva o componente', 'error');
       return;
     }
     if (!session) {
@@ -16,10 +16,7 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
       return;
     }
 
-    setErrorMsg('');
     setIsGenerating(true);
-    setActiveTab('preview');
-    
     setGenerated({ html: '', css: '', js: '' });
 
     try {
@@ -37,6 +34,8 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
         const msg = typeof err.error === 'string' ? err.error : err.error?.message;
         throw new Error(msg || `API retornou status ${res.status}`);
       }
+
+      setActiveScreen('codigo');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
@@ -61,39 +60,38 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
                 parseStream(fullText);
               }
             } catch (e) {
-              // ignore parse errors for partial chunks
+              // ignore
             }
           }
         }
       }
       
       const parsed = parseFinal(fullText);
-      if (parsed) onSuccess({ ...parsed, prompt: prompt.slice(0, 80) });
+      if (parsed) {
+        onSuccess({ ...parsed, prompt: prompt.slice(0, 80) });
+      } else {
+        throw new Error('Não foi possível gerar HTML/CSS.');
+      }
 
     } catch (err) {
-      setErrorMsg(err.message);
+      showToast(`Erro: ${err.message}`, 'error');
     } finally {
       setIsGenerating(false);
     }
   };
 
   const parseStream = (text) => {
-    const extract = (tag) => {
-      const regex = new RegExp(`<${tag}>([\\s\\S]*?)(?:</${tag}>|$)`, 'i');
+    const extract = (t) => {
+      const regex = new RegExp(`<${t}>([\\s\\S]*?)(?:</${t}>|$)`, 'i');
       const match = text.match(regex);
       return match ? match[1].trim() : '';
     };
-    
-    setGenerated({
-      html: extract('HTML'),
-      css: extract('CSS'),
-      js: extract('JS')
-    });
+    setGenerated({ html: extract('HTML'), css: extract('CSS'), js: extract('JS') });
   };
 
   const parseFinal = (text) => {
-    const extract = (tag) => {
-      const regex = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
+    const extract = (t) => {
+      const regex = new RegExp(`<${t}>([\\s\\S]*?)</${t}>`, 'i');
       const match = text.match(regex);
       return match ? match[1].trim() : '';
     };
@@ -108,38 +106,43 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
   };
 
   return (
-    <div className="prompt-container">
-      <div className="input-group">
-        <textarea
-          className="prompt-input"
-          placeholder="Descreva o componente que você quer criar... Ex: Um card de preço com fundo escuro e botão neon."
+    <>
+      <p className="section-label">Tipo de componente</p>
+      <div className="tags-row" id="tags-row">
+        {tags.map(t => (
+          <button 
+            key={t}
+            className={`tag-chip ${tag === t ? 'selected' : ''}`} 
+            onClick={() => setTag(t)}
+            disabled={isGenerating}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <p className="section-label">Descreva o componente</p>
+      <div className="prompt-area">
+        <textarea 
+          id="prompt" 
+          placeholder="Ex: Card de produto com imagem, nome, preço e botão de comprar. Visual escuro com borda neon." 
+          maxLength="600"
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
           disabled={isGenerating}
         />
-        <div className="toolbar">
-          <div className="tool-group">
-            <button className="icon-btn" title="Anexar imagem (Breve)"><ImageIcon size={18} /></button>
-            <select className="tag-select" value={tag} onChange={e => setTag(e.target.value)} disabled={isGenerating}>
-              <option value="section">&lt;section&gt;</option>
-              <option value="article">&lt;article&gt;</option>
-              <option value="header">&lt;header&gt;</option>
-              <option value="nav">&lt;nav&gt;</option>
-              <option value="footer">&lt;footer&gt;</option>
-              <option value="form">&lt;form&gt;</option>
-              <option value="div">&lt;div&gt;</option>
-            </select>
-          </div>
-          <button 
-            className="btn-primary" 
-            onClick={handleGenerate} 
-            disabled={isGenerating || !prompt.trim()}
-          >
-            {isGenerating ? 'Gerando...' : <><Send size={16} /> Gerar</>}
-          </button>
+        <div className="prompt-footer">
+          <span className="char-count" id="char-count" style={{ color: prompt.length > 500 ? 'var(--amber)' : 'var(--muted)' }}>
+            {prompt.length} / 600
+          </span>
+          <span className="pill-badge" id="selected-tag-badge">{tag}</span>
         </div>
-        {errorMsg && <div style={{ color: '#ff6b6b', marginTop: '0.5rem', fontSize: '0.9rem' }}>{errorMsg}</div>}
       </div>
-    </div>
+
+      <button className={`btn-generate ${isGenerating ? 'loading' : ''}`} id="btn-generate" onClick={handleGenerate} disabled={isGenerating}>
+        <span className="btn-text">✨ Gerar Componente</span>
+        <span className="spinner"></span>
+      </button>
+    </>
   );
 }

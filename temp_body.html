@@ -1,0 +1,414 @@
+
+
+<div id="app">
+
+  <!-- Topbar -->
+  <header id="topbar" role="banner">
+    <div class="logo">
+      <div class="logo-icon">Ôƒ¿/Ôƒ®</div>
+      CompGen
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="pill-badge" id="model-badge">Sonnet 4</span>
+      <button id="auth-btn" class="pill-badge" style="cursor: pointer; background: var(--card); border: 1px solid var(--border); color: var(--text);">Entrar</button>
+    </div>
+  </header>
+
+  <!-- Screens -->
+  <main id="content" role="main">
+
+    <!-- ÔöÇÔöÇ Gerar ÔöÇÔöÇ -->
+    <section id="screen-gerar" class="screen active" aria-label="Gerar componente">
+      <p class="section-label">Tipo de componente</p>
+      <div class="tags-row" id="tags-row">
+        <button class="tag-chip selected" data-tag="article">article</button>
+        <button class="tag-chip" data-tag="section">section</button>
+        <button class="tag-chip" data-tag="nav">nav</button>
+        <button class="tag-chip" data-tag="aside">aside</button>
+        <button class="tag-chip" data-tag="header">header</button>
+        <button class="tag-chip" data-tag="footer">footer</button>
+        <button class="tag-chip" data-tag="form">form</button>
+        <button class="tag-chip" data-tag="main">main</button>
+      </div>
+
+      <p class="section-label">Descreva o componente</p>
+      <div class="prompt-area">
+        <textarea id="prompt" placeholder="Ex: Card de produto com imagem, nome, pre├ºo e bot├úo de comprar. Visual escuro com borda neon." maxlength="600"></textarea>
+        <div class="prompt-footer">
+          <span class="char-count" id="char-count">0 / 600</span>
+          <span class="pill-badge" id="selected-tag-badge">article</span>
+        </div>
+      </div>
+
+      <button class="btn-generate" id="btn-generate">
+        <span class="btn-text">Ô£ª Gerar Componente</span>
+        <span class="spinner"></span>
+      </button>
+    </section>
+
+    <!-- ÔöÇÔöÇ Preview ÔöÇÔöÇ -->
+    <section id="screen-preview" class="screen" aria-label="Preview do componente">
+      <div class="preview-toolbar">
+        <button class="device-btn active" data-size="mobile">­ƒô▒ Mobile</button>
+        <button class="device-btn" data-size="tablet">­ƒôƒ Tablet</button>
+        <button class="device-btn" data-size="desktop">­ƒûÑ Desktop</button>
+      </div>
+
+      <div id="empty-preview-msg" class="empty-preview">
+        <div class="icon">­ƒÄ¿</div>
+        <p>Gere um componente primeiro para ver o preview aqui</p>
+      </div>
+
+      <div class="preview-frame-wrap mobile" id="preview-wrap" style="display:none">
+        <iframe id="preview-iframe" title="Preview do componente" sandbox="allow-scripts"></iframe>
+      </div>
+    </section>
+
+    <!-- ÔöÇÔöÇ C├│digo ÔöÇÔöÇ -->
+    <section id="screen-codigo" class="screen" aria-label="C├│digo gerado">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="html">HTML</button>
+        <button class="tab-btn" data-tab="css">CSS</button>
+        <button class="tab-btn" data-tab="js">JS</button>
+      </div>
+
+      <div style="position:relative; flex:1">
+        <pre class="code-block" id="code-display">
+<span style="color:var(--muted); font-style:italic">// Gere um componente para ver o c├│digo aqui</span>
+        </pre>
+        <button class="copy-btn" id="copy-btn">Copiar</button>
+      </div>
+    </section>
+
+    <!-- ÔöÇÔöÇ Hist├│rico ÔöÇÔöÇ -->
+    <section id="screen-historico" class="screen" aria-label="Hist├│rico de componentes">
+      <p class="section-label" style="margin-bottom:12px">Gerados recentemente</p>
+      <div class="history-list" id="history-list">
+        <div class="empty-history">
+          <div class="icon">­ƒôï</div>
+          <p>Seus componentes gerados aparecem aqui</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav id="nav" aria-label="Navega├º├úo principal">
+    <div class="nav-item active" data-screen="gerar">
+      <span class="nav-icon">Ô£ª</span>
+      <span class="nav-label">Gerar</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="preview">
+      <span class="nav-icon">­ƒæü</span>
+      <span class="nav-label">Preview</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="codigo">
+      <span class="nav-icon">Ôƒ¿/Ôƒ®</span>
+      <span class="nav-label">C├│digo</span>
+      <span class="nav-dot"></span>
+    </div>
+    <div class="nav-item" data-screen="historico">
+      <span class="nav-icon">­ƒòÉ</span>
+      <span class="nav-label">Hist├│rico</span>
+      <span class="nav-dot"></span>
+    </div>
+  </nav>
+
+</div>
+
+<!-- Generating Overlay -->
+<div id="generating-overlay" aria-live="polite" aria-label="Gerando componente">
+  <div class="gen-spinner"></div>
+  <div class="gen-steps">
+    <p class="gen-step" id="step-1">Analisando descri├º├úoÔÇª</p>
+    <p class="gen-step" id="step-2">Escolhendo tags sem├ónticasÔÇª</p>
+    <p class="gen-step" id="step-3">Escrevendo HTML + CSSÔÇª</p>
+    <p class="gen-step" id="step-4">Adicionando interatividadeÔÇª</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" role="alert"></div>
+
+<!-- Auth Modal -->
+<div id="auth-overlay" style="display:none; position:fixed; inset:0; background:rgba(13,13,15,.95); z-index:1000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--card); padding:24px; border-radius:var(--radius); border:1px solid var(--border); width:100%; max-width:320px; display:flex; flex-direction:column; gap:16px;">
+    <h3 style="font-weight:600; font-size:18px; color:var(--text);">Acesso ao Gerador</h3>
+    <p style="font-size:13px; color:var(--muted); line-height:1.4;">Para gerar ou salvar componentes na nuvem, fa├ºa login informando seu e-mail.</p>
+    <input type="email" id="auth-email" placeholder="seu@email.com" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:8px; outline:none;" />
+    <input type="password" id="auth-password" placeholder="Senha" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:12px; border-radius:8px; outline:none;" />
+    <button id="btn-login-submit" class="btn-generate" style="padding:12px;">Entrar / Cadastrar</button>
+    <button id="btn-close-auth" style="background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const supabaseUrl = 'https://agawgutsvfggpukphiuf.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYXdndXRzdmZnZ3B1a3BoaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODkxODcsImV4cCI6MjA5Njg2NTE4N30.j01v2ntx0D0aM6JdSi98l1RMITpGa0phzpYrGQA7MMU';
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+let session = null;
+/* ÔöÇÔöÇÔöÇ State ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+const state = {
+  activeScreen: 'gerar',
+  activeTab: 'html',
+  selectedTag: 'article',
+  generated: { html: '', css: '', js: '' },
+  history: [], // Ser├í carregado do Supabase
+  previewSize: 'mobile',
+};
+
+/* ÔöÇÔöÇÔöÇ DOM refs ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+/* ÔöÇÔöÇÔöÇ Nav ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$$('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const screen = item.dataset.screen;
+    navigate(screen);
+  });
+});
+
+function navigate(screen) {
+  state.activeScreen = screen;
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.screen === screen));
+  $$('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${screen}`));
+  if (screen === 'historico') renderHistory();
+}
+
+/* ÔöÇÔöÇÔöÇ Tag chips ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$$('.tag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    $$('.tag-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    state.selectedTag = chip.dataset.tag;
+    $('selected-tag-badge').textContent = chip.dataset.tag;
+  });
+});
+
+/* ÔöÇÔöÇÔöÇ Char count ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$('prompt').addEventListener('input', () => {
+  const len = $('prompt').value.length;
+  $('char-count').textContent = `${len} / 600`;
+  $('char-count').style.color = len > 500 ? 'var(--amber)' : 'var(--muted)';
+});
+
+/* ÔöÇÔöÇÔöÇ Preview device size ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$$('.device-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.device-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.previewSize = btn.dataset.size;
+    const wrap = $('preview-wrap');
+    wrap.className = `preview-frame-wrap ${btn.dataset.size}`;
+  });
+});
+
+/* ÔöÇÔöÇÔöÇ Code tabs ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.activeTab = btn.dataset.tab;
+    renderCode();
+  });
+});
+
+/* ÔöÇÔöÇÔöÇ Copy ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$('copy-btn').addEventListener('click', async () => {
+  const code = state.generated[state.activeTab] || '';
+  if (!code) return;
+  await navigator.clipboard.writeText(code).catch(() => {});
+  const btn = $('copy-btn');
+  btn.textContent = 'Ô£ô Copiado';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 1800);
+});
+
+/* ÔöÇÔöÇÔöÇ Toast ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = ''; }, 2800);
+}
+
+/* ÔöÇÔöÇÔöÇ Generating overlay steps ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+function runSteps() {
+  const steps = ['step-1','step-2','step-3','step-4'];
+  steps.forEach((id, i) => {
+    setTimeout(() => $$(`.gen-step`)[i]?.classList.add('visible'), i * 800);
+  });
+}
+
+function resetSteps() {
+  $$('.gen-step').forEach(s => s.classList.remove('visible'));
+}
+
+/* ÔöÇÔöÇÔöÇ Generate ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+$('btn-generate').addEventListener('click', generate);
+
+async function generate() {
+  const prompt = $('prompt').value.trim();
+  const tag = state.selectedTag;
+
+  if (!prompt) { toast('ÔÜá´©Å Descreva o componente', 'error'); return; }
+
+  if (!session) {
+    $('auth-overlay').style.display = 'flex';
+    return;
+  }
+
+  // Show overlay
+  const overlay = $('generating-overlay');
+  overlay.classList.add('visible');
+  resetSteps();
+  runSteps();
+
+  try {
+    const res = await fetch('/api/gerar', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ prompt, tag })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = typeof err.error === 'string' ? err.error : err.error?.message;
+      throw new Error(msg || `API retornou status ${res.status}`);
+    }
+
+    // Esconde o overlay de loading e mostra a aba de c├│digo j├í no in├¡cio do streaming
+    overlay.classList.remove('visible');
+    navigate('codigo');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let raw = '';
+    let buffer = '';
+
+    // Parser seguro para extra├º├úo parcial (durante o stream)
+    function extractStreamBlock(text, blockTag) {
+      const open = `<${blockTag}>`;
+      const close = `</${blockTag}>`;
+      const startIdx = text.indexOf(open);
+      if (startIdx === -1) return '';
+      const endIdx = text.indexOf(close, startIdx);
+      if (endIdx === -1) {
+        return text.substring(startIdx + open.length).trimStart();
+      }
+      return text.substring(startIdx + open.length, endIdx).trim();
+    }
+
+    // Leitura do stream (SSE)
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // Mant├®m linha incompleta no buffer para o pr├│ximo chunk
+
+      let updated = false;
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+              raw += ev.delta.text;
+              updated = true;
+            }
+          } catch (e) { /* ignore parse error on partial lines */ }
+        }
+      }
+
+      if (updated) {
+        // Atualiza a UI em tempo real (efeito m├íquina de escrever)
+        state.generated.html = extractStreamBlock(raw, 'HTML');
+        state.generated.css  = extractStreamBlock(raw, 'CSS');
+        state.generated.js   = extractStreamBlock(raw, 'JS');
+        renderCode(); 
+      }
+    }
+
+    // Processamento final
+    const titleText = extractStreamBlock(raw, 'TITLE') || 'Componente';
+    const emojiText = extractStreamBlock(raw, 'EMOJI') || 'Ôƒ¿Ôƒ®';
+    var _title = titleText;
+    var _emoji = emojiText;
+
+    // Se o HTML final for nulo, tenta recuperar do JSON (fallback do original)
+    if (!state.generated.html) {
+      try {
+        const clean = raw.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(clean);
+        state.generated.html = parsed.html || '';
+        state.generated.css  = parsed.css  || '';
+        state.generated.js   = parsed.js   || '';
+        _title = parsed.title || 'Componente';
+        _emoji = parsed.emoji || 'Ôƒ¿Ôƒ®';
+      } catch {
+        throw new Error('Formato de resposta inesperado. Tente novamente.');
+      }
+    }
+
+    // Save to history
+    const item = {
+      user_id: session.user.id,
+      title: _title,
+      emoji: _emoji,
+      tag,
+      prompt: prompt.slice(0, 80),
+      html: state.generated.html,
+      css:  state.generated.css,
+      js:   state.generated.js
+    };
+    
+    // Salvar no banco (Supabase) em background
+    supabaseClient.from('components_history').insert([item]).select().then(({data, error}) => {
+      if(error) console.error('Erro ao salvar no Supabase:', error);
+      if(data && data.length > 0) {
+        data[0].ts = new Date(data[0].created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        state.history.unshift(data[0]);
+        renderHistory();
+      }
+    });
+
+    updatePreview();
+    renderCode();
+    toast(`Ô£ª Componente gerado!`, 'success');
+    navigate('preview');
+
+  } catch (err) {
+    overlay.classList.remove('visible');
+    console.error(err);
+    toast(`Erro: ${err.message}`, 'error');
+  }
+}
+
+/* ÔöÇÔöÇÔöÇ Preview ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+function updatePreview() {
+  const { html, css, js } = state.generated;
+  if (!html) return;
+
+  const doc = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;padding:20px;background:#fafafa;min-height:100vh;display:flex;align-items:flex-start;justify-content:center}
+  ${css}
+</style>
+</head>
+<body>
+${html}
+<script>${js}<\/script>

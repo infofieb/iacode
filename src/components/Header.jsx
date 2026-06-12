@@ -1,26 +1,19 @@
-import { Menu, LogIn, LogOut } from 'lucide-react';
-
-export default function Header({ session, onLoginClick, onLogoutClick, onToggleSidebar }) {
+export default function Header({ session, onLoginClick, onLogoutClick }) {
   return (
-    <header className="header">
-      <div className="header-left">
-        <button className="icon-btn" onClick={onToggleSidebar} aria-label="Menu">
-          <Menu size={20} />
-        </button>
-        <div className="logo">
-          <span className="logo-icon">✨</span>
-          <h1>CompGen</h1>
-        </div>
+    <header id="topbar" role="banner">
+      <div className="logo">
+        <div className="logo-icon">&lt;/&gt;</div>
+        CompGen
       </div>
-      <div className="header-right">
-        <span className="model-badge">Claude 3.5 Sonnet</span>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <span className="pill-badge" id="model-badge">Sonnet 4</span>
         {session ? (
-          <button className="pill-badge" onClick={onLogoutClick}>
-            <LogOut size={16} /> Sair
+          <button id="auth-btn" className="pill-badge" onClick={onLogoutClick} style={{ cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+            Sair
           </button>
         ) : (
-          <button className="pill-badge" onClick={onLoginClick}>
-            <LogIn size={16} /> Entrar
+          <button id="auth-btn" className="pill-badge" onClick={onLoginClick} style={{ cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+            Entrar
           </button>
         )}
       </div>

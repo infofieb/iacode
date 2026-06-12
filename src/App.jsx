@@ -7,15 +7,18 @@ import HistoryList from './components/HistoryList';
 import AuthModal from './components/AuthModal';
 import { supabase } from './supabase';
 
-function App() {
+export default function App() {
   const [session, setSession] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('preview');
+  const [activeScreen, setActiveScreen] = useState('gerar');
+  const [activeTab, setActiveTab] = useState('html');
+  const [previewSize, setPreviewSize] = useState('mobile');
   
   const [generated, setGenerated] = useState({ html: '', css: '', js: '' });
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState([]);
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastType, setToastType] = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -23,9 +26,7 @@ function App() {
       if (session) loadHistory();
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) loadHistory();
       else setHistory([]);
@@ -49,8 +50,10 @@ function App() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const showToast = (msg, type = '') => {
+    setToastMsg(msg);
+    setToastType(type);
+    setTimeout(() => setToastMsg(''), 2800);
   };
 
   const onGenerateSuccess = (item) => {
@@ -71,11 +74,13 @@ function App() {
         }
       });
     }
+    showToast('✨ Componente gerado!', 'success');
   };
 
   const handleSelectHistory = (item) => {
     setGenerated({ html: item.html, css: item.css, js: item.js });
-    setActiveTab('preview');
+    setActiveScreen('preview');
+    showToast('✨ Componente carregado', 'success');
   };
 
   const handleDeleteHistory = async (id) => {
@@ -83,75 +88,109 @@ function App() {
     if (session) {
       await supabase.from('components_history').delete().eq('id', id);
     }
+    showToast('Removido do histórico');
   };
 
   return (
-    <>
+    <div id="app">
       <Header 
         session={session} 
         onLoginClick={() => setShowAuthModal(true)} 
-        onLogoutClick={handleLogout}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onLogoutClick={() => supabase.auth.signOut()}
       />
 
-      <main className={`main-content ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
-        <HistoryList 
-          isOpen={isSidebarOpen} 
-          history={history} 
-          onSelect={handleSelectHistory}
-          onDelete={handleDeleteHistory}
-        />
-
-        <section className="workspace">
+      <main id="content" role="main">
+        {/* Tela Gerar */}
+        <section id="screen-gerar" className={`screen ${activeScreen === 'gerar' ? 'active' : ''}`}>
           <GeneratorPanel 
             session={session}
             onShowAuth={() => setShowAuthModal(true)}
             isGenerating={isGenerating}
             setIsGenerating={setIsGenerating}
             setGenerated={setGenerated}
-            setActiveTab={setActiveTab}
+            setActiveScreen={setActiveScreen}
             onSuccess={onGenerateSuccess}
+            showToast={showToast}
           />
+        </section>
 
-          <div className="preview-area">
-            <div className="tabs">
-              <button 
-                className={`tab ${activeTab === 'preview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('preview')}
-              >
-                👀 Preview
-              </button>
-              <button 
-                className={`tab ${activeTab === 'code' ? 'active' : ''}`}
-                onClick={() => setActiveTab('code')}
-              >
-                &lt;/&gt; Código
-              </button>
+        {/* Tela Preview */}
+        <section id="screen-preview" className={`screen ${activeScreen === 'preview' ? 'active' : ''}`}>
+          <div className="preview-toolbar">
+            <button className={`device-btn ${previewSize === 'mobile' ? 'active' : ''}`} onClick={() => setPreviewSize('mobile')}>📱 Mobile</button>
+            <button className={`device-btn ${previewSize === 'tablet' ? 'active' : ''}`} onClick={() => setPreviewSize('tablet')}>📏 Tablet</button>
+            <button className={`device-btn ${previewSize === 'desktop' ? 'active' : ''}`} onClick={() => setPreviewSize('desktop')}>💻 Desktop</button>
+          </div>
+          {(!generated.html && !generated.css) ? (
+            <div className="empty-preview">
+              <div className="icon">🎨</div>
+              <p>Gere um componente primeiro para ver o preview aqui</p>
             </div>
-
-            <div className="tab-content" style={{ display: activeTab === 'preview' ? 'flex' : 'none' }}>
+          ) : (
+            <div className={`preview-frame-wrap ${previewSize}`} id="preview-wrap">
               <PreviewIframe html={generated.html} css={generated.css} js={generated.js} />
             </div>
+          )}
+        </section>
 
-            <div className="tab-content" style={{ display: activeTab === 'code' ? 'block' : 'none' }}>
-              <CodeViewer html={generated.html} css={generated.css} js={generated.js} />
-            </div>
-            
-            {isGenerating && (
-              <div className="generating-overlay">
-                <div className="spinner"></div>
-                <p>A Inteligência Artificial está criando seu componente...</p>
-              </div>
-            )}
+        {/* Tela Código */}
+        <section id="screen-codigo" className={`screen ${activeScreen === 'codigo' ? 'active' : ''}`}>
+          <div className="tabs">
+            <button className={`tab-btn ${activeTab === 'html' ? 'active' : ''}`} onClick={() => setActiveTab('html')}>HTML</button>
+            <button className={`tab-btn ${activeTab === 'css' ? 'active' : ''}`} onClick={() => setActiveTab('css')}>CSS</button>
+            <button className={`tab-btn ${activeTab === 'js' ? 'active' : ''}`} onClick={() => setActiveTab('js')}>JS</button>
           </div>
+          <CodeViewer 
+            code={generated[activeTab] || ''} 
+            language={activeTab === 'js' ? 'javascript' : activeTab}
+            type={activeTab}
+          />
+        </section>
+
+        {/* Tela Histórico */}
+        <section id="screen-historico" className={`screen ${activeScreen === 'historico' ? 'active' : ''}`}>
+          <p className="section-label" style={{ marginBottom: '12px' }}>Gerados recentemente</p>
+          <HistoryList 
+            history={history} 
+            onSelect={handleSelectHistory}
+            onDelete={handleDeleteHistory}
+          />
         </section>
       </main>
+
+      {/* Bottom Nav */}
+      <nav id="nav">
+        <div className={`nav-item ${activeScreen === 'gerar' ? 'active' : ''}`} onClick={() => setActiveScreen('gerar')}>
+          <span className="nav-icon">✨</span><span className="nav-label">Gerar</span><span className="nav-dot"></span>
+        </div>
+        <div className={`nav-item ${activeScreen === 'preview' ? 'active' : ''}`} onClick={() => setActiveScreen('preview')}>
+          <span className="nav-icon">👀</span><span className="nav-label">Preview</span><span className="nav-dot"></span>
+        </div>
+        <div className={`nav-item ${activeScreen === 'codigo' ? 'active' : ''}`} onClick={() => setActiveScreen('codigo')}>
+          <span className="nav-icon">&lt;/&gt;</span><span className="nav-label">Código</span><span className="nav-dot"></span>
+        </div>
+        <div className={`nav-item ${activeScreen === 'historico' ? 'active' : ''}`} onClick={() => setActiveScreen('historico')}>
+          <span className="nav-icon">🕒</span><span className="nav-label">Histórico</span><span className="nav-dot"></span>
+        </div>
+      </nav>
+
+      {/* Generating Overlay */}
+      {isGenerating && (
+        <div id="generating-overlay" className="visible">
+          <div className="gen-spinner"></div>
+          <div className="gen-steps">
+            <p className="gen-step visible">Analisando descrição...</p>
+            <p className="gen-step visible">Escrevendo HTML + CSS...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <div id="toast" className={`${toastMsg ? 'show' : ''} ${toastType}`}>{toastMsg}</div>
 
       {showAuthModal && (
         <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
-    </>
+    </div>
   );
 }
-
-export default App;
