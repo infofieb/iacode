@@ -29,12 +29,12 @@ export default function PreviewIframe({ generated }) {
       const componentNameMatch = js.match(/export default function (\w+)/);
       const componentName = componentNameMatch ? componentNameMatch[1] : 'App';
       
-      // Strip imports since we use globals
-      componentCode = componentCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
+      // Strip imports robustly (including multiline)
+      componentCode = componentCode.replace(/import\s+(?:(?:[\w*\s{},]*)\s+from\s+)?['"][^'"]+['"];?/g, '');
       
       bodyInjects = `
         <div id="react-root"></div>
-        <script type="text/babel" data-type="module">
+        <script type="text/babel">
           const { useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
           ${componentCode}
           const root = ReactDOM.createRoot(document.getElementById('react-root'));
