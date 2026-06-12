@@ -79,24 +79,28 @@ Cole aqui o JS ou deixe vazio
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 8000,
+        stream: true,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
-    const data = await upstream.json();
-
     if (!upstream.ok) {
+      const data = await upstream.json();
       return new Response(
         JSON.stringify({ error: data.error?.message || `Anthropic API: ${upstream.status}` }),
         { status: upstream.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Repassa a resposta bruta para o frontend processar
-    return new Response(JSON.stringify(data), {
+    // Repassa o stream SSE bruto para o frontend processar
+    return new Response(upstream.body, {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
     });
 
   } catch (err) {

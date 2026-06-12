@@ -856,49 +856,78 @@ async function generate() {
       throw new Error(err.error?.message || `API retornou status ${res.status}`);
     }
 
-    const data = await res.json();
+    // Esconde o overlay de loading e mostra a aba de código já no início do streaming
+    overlay.classList.remove('visible');
+    navigate('codigo');
 
-    // Verificar stop_reason — se for max_tokens a resposta foi cortada
-    if (data.stop_reason === 'max_tokens') {
-      throw new Error('Resposta muito longa. Simplifique a descrição do componente.');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let raw = '';
+    let buffer = '';
+
+    // Parser seguro para extração parcial (durante o stream)
+    function extractStreamBlock(text, blockTag) {
+      const open = `<${blockTag}>`;
+      const close = `</${blockTag}>`;
+      const startIdx = text.indexOf(open);
+      if (startIdx === -1) return '';
+      const endIdx = text.indexOf(close, startIdx);
+      if (endIdx === -1) {
+        return text.substring(startIdx + open.length).trimStart();
+      }
+      return text.substring(startIdx + open.length, endIdx).trim();
     }
 
-    const raw = data.content?.[0]?.text || '';
+    // Leitura do stream (SSE)
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    // Parser de delimitadores XML — imune a quebras de linha e aspas no código
-    function extractBlock(text, tag) {
-      const open  = new RegExp(`<${tag}>\\s*`, 's');
-      const close = new RegExp(`\\s*<\\/${tag}>`, 's');
-      const full  = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, 's');
-      const m = text.match(full);
-      return m ? m[1].trim() : '';
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // Mantém linha incompleta no buffer para o próximo chunk
+
+      let updated = false;
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line.trim() !== 'data: [DONE]') {
+          try {
+            const ev = JSON.parse(line.slice(6));
+            if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+              raw += ev.delta.text;
+              updated = true;
+            }
+          } catch (e) { /* ignore parse error on partial lines */ }
+        }
+      }
+
+      if (updated) {
+        // Atualiza a UI em tempo real (efeito máquina de escrever)
+        state.generated.html = extractStreamBlock(raw, 'HTML');
+        state.generated.css  = extractStreamBlock(raw, 'CSS');
+        state.generated.js   = extractStreamBlock(raw, 'JS');
+        renderCode(); 
+      }
     }
 
-    const htmlCode  = extractBlock(raw, 'HTML');
-    const cssCode   = extractBlock(raw, 'CSS');
-    const jsCode    = extractBlock(raw, 'JS');
-    const titleText = extractBlock(raw, 'TITLE') || 'Componente';
-    const emojiText = extractBlock(raw, 'EMOJI') || '⟨⟩';
+    // Processamento final
+    const titleText = extractStreamBlock(raw, 'TITLE') || 'Componente';
+    const emojiText = extractStreamBlock(raw, 'EMOJI') || '⟨⟩';
+    var _title = titleText;
+    var _emoji = emojiText;
 
-    if (!htmlCode) {
-      // Último fallback: talvez o modelo ainda tenha retornado JSON, tenta parsear
+    // Se o HTML final for nulo, tenta recuperar do JSON (fallback do original)
+    if (!state.generated.html) {
       try {
         const clean = raw.replace(/```json|```/g, '').trim();
         const parsed = JSON.parse(clean);
         state.generated.html = parsed.html || '';
         state.generated.css  = parsed.css  || '';
         state.generated.js   = parsed.js   || '';
-        var _title = parsed.title || 'Componente';
-        var _emoji = parsed.emoji || '⟨⟩';
+        _title = parsed.title || 'Componente';
+        _emoji = parsed.emoji || '⟨⟩';
       } catch {
         throw new Error('Formato de resposta inesperado. Tente novamente.');
       }
-    } else {
-      state.generated.html = htmlCode;
-      state.generated.css  = cssCode;
-      state.generated.js   = jsCode;
-      var _title = titleText;
-      var _emoji = emojiText;
     }
 
     // Save to history
@@ -917,7 +946,6 @@ async function generate() {
     if (state.history.length > 20) state.history.pop();
     localStorage.setItem('compgen-history', JSON.stringify(state.history));
 
-    overlay.classList.remove('visible');
     updatePreview();
     renderCode();
     toast(`✦ Componente gerado!`, 'success');
