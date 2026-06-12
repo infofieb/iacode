@@ -121,29 +121,24 @@ export default function App() {
             <button className={`device-btn ${previewSize === 'tablet' ? 'active' : ''}`} onClick={() => setPreviewSize('tablet')}>📏 Tablet</button>
             <button className={`device-btn ${previewSize === 'desktop' ? 'active' : ''}`} onClick={() => setPreviewSize('desktop')}>💻 Desktop</button>
           </div>
-          {(!generated.html && !generated.css) ? (
+          {(!generated.html && !generated.css && !generated.js) ? (
             <div className="empty-preview">
               <div className="icon">🎨</div>
               <p>Gere um componente primeiro para ver o preview aqui</p>
             </div>
           ) : (
             <div className={`preview-frame-wrap ${previewSize}`} id="preview-wrap">
-              <PreviewIframe html={generated.html} css={generated.css} js={generated.js} />
+              <PreviewIframe generated={generated} />
             </div>
           )}
         </section>
 
         {/* Tela Código */}
         <section id="screen-codigo" className={`screen ${activeScreen === 'codigo' ? 'active' : ''}`}>
-          <div className="tabs">
-            <button className={`tab-btn ${activeTab === 'html' ? 'active' : ''}`} onClick={() => setActiveTab('html')}>HTML</button>
-            <button className={`tab-btn ${activeTab === 'css' ? 'active' : ''}`} onClick={() => setActiveTab('css')}>CSS</button>
-            <button className={`tab-btn ${activeTab === 'js' ? 'active' : ''}`} onClick={() => setActiveTab('js')}>JS</button>
-          </div>
           <CodeViewer 
-            code={generated[activeTab] || ''} 
-            language={activeTab === 'js' ? 'javascript' : activeTab}
-            type={activeTab}
+            generated={generated}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
           />
         </section>
 

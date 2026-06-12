@@ -3,8 +3,14 @@ import { useState } from 'react';
 export default function GeneratorPanel({ session, onShowAuth, isGenerating, setIsGenerating, setGenerated, setActiveScreen, onSuccess, showToast }) {
   const [prompt, setPrompt] = useState('');
   const [tag, setTag] = useState('article');
+  
+  // Premium Features
+  const [framework, setFramework] = useState('html'); // 'html', 'react', 'vue'
+  const [styling, setStyling] = useState('css');      // 'css', 'tailwind'
 
   const tags = ['article', 'section', 'nav', 'aside', 'header', 'footer', 'form', 'main'];
+  const frameworks = [{ id: 'html', label: 'Vanilla HTML' }, { id: 'react', label: 'React' }, { id: 'vue', label: 'Vue 3' }];
+  const stylings = [{ id: 'css', label: 'Vanilla CSS' }, { id: 'tailwind', label: 'TailwindCSS' }];
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -17,7 +23,7 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
     }
 
     setIsGenerating(true);
-    setGenerated({ html: '', css: '', js: '' });
+    setGenerated({ html: '', css: '', js: '', framework, styling });
 
     try {
       const res = await fetch('/api/gerar', {
@@ -26,7 +32,7 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ prompt, tag })
+        body: JSON.stringify({ prompt, tag, framework, styling })
       });
 
       if (!res.ok) {
@@ -68,9 +74,9 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
       
       const parsed = parseFinal(fullText);
       if (parsed) {
-        onSuccess({ ...parsed, prompt: prompt.slice(0, 80) });
+        onSuccess({ ...parsed, prompt: prompt.slice(0, 80), framework, styling });
       } else {
-        throw new Error('Não foi possível gerar HTML/CSS.');
+        throw new Error('Não foi possível gerar o código.');
       }
 
     } catch (err) {
@@ -86,7 +92,7 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
       const match = text.match(regex);
       return match ? match[1].trim() : '';
     };
-    setGenerated({ html: extract('HTML'), css: extract('CSS'), js: extract('JS') });
+    setGenerated({ html: extract('HTML'), css: extract('CSS'), js: extract('JS'), framework, styling });
   };
 
   const parseFinal = (text) => {
@@ -101,13 +107,48 @@ export default function GeneratorPanel({ session, onShowAuth, isGenerating, setI
     const css = extract('CSS');
     const js = extract('JS');
 
-    if (!html && !css) return null;
+    if (!html && !css && !js) return null;
     return { title, emoji, tag, html, css, js };
   };
 
   return (
     <>
-      <p className="section-label">Tipo de componente</p>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+        <div style={{ flex: 1 }}>
+          <p className="section-label">⚙️ Framework (Premium)</p>
+          <div className="tags-row" style={{ marginBottom: 0 }}>
+            {frameworks.map(f => (
+              <button 
+                key={f.id}
+                className={`tag-chip ${framework === f.id ? 'selected' : ''}`} 
+                onClick={() => setFramework(f.id)}
+                disabled={isGenerating}
+                style={{ borderColor: framework === f.id ? 'var(--amber)' : '', color: framework === f.id ? 'var(--amber)' : '' }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <p className="section-label">🎨 Estilo (Premium)</p>
+          <div className="tags-row" style={{ marginBottom: 0 }}>
+            {stylings.map(s => (
+              <button 
+                key={s.id}
+                className={`tag-chip ${styling === s.id ? 'selected' : ''}`} 
+                onClick={() => setStyling(s.id)}
+                disabled={isGenerating}
+                style={{ borderColor: styling === s.id ? 'var(--green)' : '', color: styling === s.id ? 'var(--green)' : '' }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p className="section-label">Tag Raiz</p>
       <div className="tags-row" id="tags-row">
         {tags.map(t => (
           <button 
