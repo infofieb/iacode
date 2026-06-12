@@ -957,6 +957,7 @@ async function generate() {
 
     // Save to history
     const item = {
+      user_id: session.user.id,
       title: _title,
       emoji: _emoji,
       tag,
@@ -968,8 +969,8 @@ async function generate() {
     
     // Salvar no banco (Supabase) em background
     supabase.from('components_history').insert([item]).select().then(({data, error}) => {
-      if(error) console.error(error);
-      if(data) {
+      if(error) console.error('Erro ao salvar no Supabase:', error);
+      if(data && data.length > 0) {
         data[0].ts = new Date(data[0].created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         state.history.unshift(data[0]);
         renderHistory();
