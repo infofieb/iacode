@@ -60,33 +60,35 @@ export default async (request, context) => {
   // Build System Prompt dynamically
   let systemPrompt = `Você é um especialista em desenvolvimento Frontend avançado.\n\nREGRAS ESTRITAS:\n`;
   systemPrompt += `1. O componente deve ser altamente moderno, visualmente impactante, com design premium, e acessível.\n`;
+  systemPrompt += `2. NUNCA use bibliotecas externas (como lucide-react, heroicons, fontawesome, etc). Se precisar de ícones, desenhe os SVGs inline diretamente no código.\n`;
+  systemPrompt += `3. NUNCA use instruções de \`import\`. Assuma que as dependências (React, Vue) estão disponíveis no escopo global (ex: React.useState, Vue.ref).\n`;
 
   // Framework logic
   if (framework === 'react') {
-    systemPrompt += `2. Gere um componente Funcional do React (export default function NomeComponente). Use apenas hooks padrões do React se necessário.\n`;
-    systemPrompt += `3. A tag raiz OBRIGATÓRIA do JSX retornado deve ser <${tag}> (não use div como raiz principal).\n`;
-    systemPrompt += `4. Retorne o código React/JSX na tag <JS>. Deixe a tag <HTML> vazia.\n`;
+    systemPrompt += `4. Gere um componente Funcional do React (export default function NomeComponente). Use apenas hooks padrões pelo objeto global React (ex: const [state, setState] = React.useState()).\n`;
+    systemPrompt += `5. A tag raiz OBRIGATÓRIA do JSX retornado deve ser <${tag}> (não use div como raiz principal).\n`;
+    systemPrompt += `6. Retorne o código React/JSX na tag <JS>. Deixe a tag <HTML> vazia.\n`;
   } else if (framework === 'vue') {
-    systemPrompt += `2. Gere um Vue 3 Single File Component (SFC) usando <template>, <script setup> (se precisar), e <style scoped> (se precisar).\n`;
-    systemPrompt += `3. A tag raiz OBRIGATÓRIA do template deve ser <${tag}>.\n`;
-    systemPrompt += `4. Retorne TODO o código SFC (.vue) dentro da tag <HTML>. Deixe a tag <JS> e <CSS> vazias (o CSS deve ficar no <style> do SFC).\n`;
+    systemPrompt += `4. Gere um componente Vue 3 usando a Options API clássica (export default { data() { return {} } }). NÃO use <script setup>, pois não é suportado no nosso ambiente de preview. Use o objeto global Vue se precisar acessar propriedades da Composition API.\n`;
+    systemPrompt += `5. A tag raiz OBRIGATÓRIA do template deve ser <${tag}>.\n`;
+    systemPrompt += `6. Retorne TODO o código SFC (.vue), ou seja, <template>, <script> e <style>, dentro da tag <HTML>. Deixe a tag <JS> e <CSS> vazias.\n`;
   } else {
     // Vanilla
-    systemPrompt += `2. NUNCA use a tag <div>. Use exclusivamente tags semânticas: ${tag}, section, article, header, nav, etc.\n`;
-    systemPrompt += `3. A tag raiz OBRIGATÓRIA é <${tag}>.\n`;
-    systemPrompt += `4. Retorne o HTML na tag <HTML> e o JS vanilla puro (se houver interatividade) na tag <JS>.\n`;
+    systemPrompt += `4. NUNCA use a tag <div>. Use exclusivamente tags semânticas: ${tag}, section, article, header, nav, etc.\n`;
+    systemPrompt += `5. A tag raiz OBRIGATÓRIA é <${tag}>.\n`;
+    systemPrompt += `6. Retorne o HTML na tag <HTML> e o JS vanilla puro (se houver interatividade) na tag <JS>.\n`;
   }
 
   // Styling logic
   if (styling === 'tailwind') {
-    systemPrompt += `5. OBRIGATÓRIO: Estilize o componente **apenas com classes do TailwindCSS v3**. NÃO use CSS puro. Deixe a tag <CSS> completamente vazia.\n`;
+    systemPrompt += `7. OBRIGATÓRIO: Estilize o componente **apenas com classes do TailwindCSS v3**. NÃO use CSS puro. Deixe a tag <CSS> completamente vazia.\n`;
     if (framework === 'react') {
-      systemPrompt += `6. Use className=".." para aplicar as classes do Tailwind no React.\n`;
+      systemPrompt += `8. Use className=".." para aplicar as classes do Tailwind no React.\n`;
     }
   } else {
     // Vanilla CSS
     if (framework !== 'vue') {
-      systemPrompt += `5. OBRIGATÓRIO: Estilize o componente usando Vanilla CSS puro com CSS variables. O design deve ser mobile-first. Retorne esse código na tag <CSS>.\n`;
+      systemPrompt += `7. OBRIGATÓRIO: Estilize o componente usando Vanilla CSS puro com CSS variables. O design deve ser mobile-first. Retorne esse código na tag <CSS>.\n`;
     }
   }
 

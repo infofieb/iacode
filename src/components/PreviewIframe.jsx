@@ -25,13 +25,17 @@ export default function PreviewIframe({ generated }) {
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
       `;
       // Convert standard export to ReactDOM render
-      const componentCode = js.replace(/export default function (\w+)/, 'function $1');
+      let componentCode = js.replace(/export default function (\w+)/, 'function $1');
       const componentNameMatch = js.match(/export default function (\w+)/);
       const componentName = componentNameMatch ? componentNameMatch[1] : 'App';
+      
+      // Strip imports since we use globals
+      componentCode = componentCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '');
       
       bodyInjects = `
         <div id="react-root"></div>
         <script type="text/babel" data-type="module">
+          const { useState, useEffect, useRef, useMemo, useCallback, Fragment } = React;
           ${componentCode}
           const root = ReactDOM.createRoot(document.getElementById('react-root'));
           root.render(<${componentName} />);
