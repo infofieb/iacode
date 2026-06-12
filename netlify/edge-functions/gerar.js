@@ -16,7 +16,7 @@ export default async (request, context) => {
   }
 
   // Chave lida do ambiente do servidor — invisível para o cliente
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = Netlify.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
     return new Response(
       JSON.stringify({ error: 'ANTHROPIC_API_KEY não configurada no servidor.' }),

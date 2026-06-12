@@ -5,8 +5,4 @@
 [functions]
   node_bundler = "esbuild"
 
-# Redireciona /api/* para as functions sem expor a URL interna
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Removido redirecionamento de functions pois agora usamos Edge Functions (que rodam direto na rota /api/gerar)
