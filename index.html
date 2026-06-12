@@ -745,7 +745,7 @@
 <script>
 const supabaseUrl = 'https://agawgutsvfggpukphiuf.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYXdndXRzdmZnZ3B1a3BoaXVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyODkxODcsImV4cCI6MjA5Njg2NTE4N30.j01v2ntx0D0aM6JdSi98l1RMITpGa0phzpYrGQA7MMU';
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 let session = null;
 /* ─── State ──────────────────────────────────────── */
 const state = {
@@ -968,7 +968,7 @@ async function generate() {
     };
     
     // Salvar no banco (Supabase) em background
-    supabase.from('components_history').insert([item]).select().then(({data, error}) => {
+    supabaseClient.from('components_history').insert([item]).select().then(({data, error}) => {
       if(error) console.error('Erro ao salvar no Supabase:', error);
       if(data && data.length > 0) {
         data[0].ts = new Date(data[0].created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -1090,7 +1090,7 @@ function renderHistory() {
       state.history = state.history.filter(h => h.id != id);
       renderHistory();
       if (session && id) {
-        await supabase.from('components_history').delete().eq('id', id);
+        await supabaseClient.from('components_history').delete().eq('id', id);
       }
       toast('Removido do histórico');
     });
@@ -1098,7 +1098,7 @@ function renderHistory() {
 }
 
 /* ─── Auth Flow & DB Load ────────────────────────── */
-supabase.auth.onAuthStateChange((event, _session) => {
+supabaseClient.auth.onAuthStateChange((event, _session) => {
   session = _session;
   updateAuthUI();
 });
@@ -1116,7 +1116,7 @@ function updateAuthUI() {
 }
 
 async function loadHistoryFromDB() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('components_history')
     .select('*')
     .order('created_at', { ascending: false })
@@ -1129,7 +1129,7 @@ async function loadHistoryFromDB() {
 
 $('auth-btn').addEventListener('click', async () => {
   if (session) {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
   } else {
     $('auth-overlay').style.display = 'flex';
   }
@@ -1145,10 +1145,10 @@ $('btn-login-submit').addEventListener('click', async () => {
   if (!email || !password) return toast('Preencha email e senha', 'error');
   
   $('btn-login-submit').textContent = 'Aguarde...';
-  let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   
   if (error && error.message.includes('Invalid login credentials')) {
-    const res = await supabase.auth.signUp({ email, password });
+    const res = await supabaseClient.auth.signUp({ email, password });
     error = res.error;
     data = res.data;
   }
